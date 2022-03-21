@@ -1,0 +1,20 @@
+<phpunit
+	bootstrap="../../plugins/oik-batch/oik-wp.php"
+	backupGlobals="false"
+	colors="false"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	>
+	<!-- for PHPUnit 9.5.2 -->
+	<testsuites>
+	
+		<testsuite name="dupes">
+			<file>tests/test-issue-13459.php</file>
+			</testsuite>
+		<testsuite name="random">
+			<!-- We can't actually run tests in a random order due to use of static variables -->
+			<directory prefix="test-random" suffix=".php">tests/</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>
