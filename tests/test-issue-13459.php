@@ -8,6 +8,11 @@ class Tests_issue_13459 extends BW_UnitTestCase {
     static private $saved_permalink_structure = null;
 
     private $duplicate_title;
+	/**
+	 * Permalink structure to test. Blank is for Plain permalinks ie https://example.com/?p=123
+	 * @var string
+	 */
+    private $structure = '';
 	/** 
 	 * set up logic
 	 * 
@@ -96,14 +101,15 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 
         }
     }
+
 	/**
 	 * This is supposed to set the permalink structure.
 	 * How do we test that this has worked?
 	 * What does the `set_permalink_structure()` method do? What about `flush_rules()`?
 	 */
-	function set_permalink_structure_postname() {
+	function set_permalink_structure( $structure='/%postname%/') {
 		global $wp_rewrite;
-		$wp_rewrite->set_permalink_structure( '/%postname%/' );
+		$wp_rewrite->set_permalink_structure( $structure );
 	}
 
 	static function flush_rules() {
@@ -112,9 +118,21 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 		parent::commit_transaction();
 	}
 
+	/**
+	 * Generates post content to uniquely identify the post.
+	 * Includes the permalink structure.
+	 * 
+	 * @param $title
+	 * @param $type
+	 * @param $status
+	 *
+	 * @return string
+	 */
 	function generate_post_content( $title, $type, $status ) {
 	    $content = $this->findable_paragraph();
-        $content .= "$title:$type:$status:%ID%</p>";
+        $content .= "$title:$type:$status:%ID%:";
+        $content .= $this->structure;
+        $content .= "</p>";
         return $content;
     }
 
@@ -141,6 +159,11 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 		return $fetched;
 	}
 
+	/**
+	 * Sets the post ID in the content and excerpt. We can't do it on the insert.
+	 *
+	 * @param $post
+	 */
 	function update_post_content( $post ) {
 	    $postarr = [];
 	    $postarr['ID'] = $post->ID;
@@ -194,14 +217,35 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 	    $this->assertEquals( $post->post_content, $fetched );
     }
 
-    /**
+	/**
+	 * These are sensible permalink structures.
+	 *
+	 * Non-sensible permalink structures are any structure which doesn't contain the %postname% or %post_id%
+	 * eg /%monthnum%/
+	 * @return string[]
+	 */
+    function permalink_structures() {
+		$structures = [
+			'',
+			'/%year%/%monthnum%/%day%/%postname%/',
+			'/%year%/%monthnum%/%postname%/',
+			'/%post_id%/',
+			'/%post_id%/%postname%/',
+			'/%postname%/'
+		];
+		return $structures;
+    }
+
+	/**
      * Tests accessing posts with non-duplicated slugs.
      *
      * Two posts with the same title should have different slugs
      * and be individually accessible by their permalinks.
      */
 	function test_duplicate_post_post() {
-		$this->set_permalink_structure_postname();
+		//$structure = '/%postname%/';
+
+		$this->set_permalink_structure( $this->structure );
 		$this->clear_all_duplicates();
 
 		$post1 = $this->create_post( 'post', 'publish');
@@ -230,7 +274,7 @@ class Tests_issue_13459 extends BW_UnitTestCase {
      * And doesn't support using a `post_type=` attribute to enable the differentiation.
      */
     function test_duplicate_page_post() {
-        $this->set_permalink_structure_postname();
+        $this->set_permalink_structure( $this->structure);
         $this->clear_all_duplicates();
 
         $page = $this->create_post( 'page', 'publish');
@@ -248,5 +292,29 @@ class Tests_issue_13459 extends BW_UnitTestCase {
         // due to the post's permalink being the same as the page's.
         $this->check_fetched( $fetched2, $post );
     }
+
+	/**
+	 * Tests duplicate posts combinations for a range of permalink structures.
+	 */
+	function test_permalink_structures() {
+		$structures = $this->permalink_structures();
+		foreach ( $structures as $structure ) {
+			$this->structure = $structure;
+			$this->test_duplicate_post_post();
+			//$this->test_duplicate_page_post();
+		}
+	}
+
+	/**
+	 * Tests duplicate page/post combinations for a range of permalink structures.
+	 */
+	function test_permalink_structures_page_post() {
+		$structures = $this->permalink_structures();
+		foreach ( $structures as $structure ) {
+			$this->structure = $structure;
+			//$this->test_duplicate_post_post();
+			$this->test_duplicate_page_post();
+		}
+	}
 
 }
