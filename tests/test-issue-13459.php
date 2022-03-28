@@ -18,10 +18,18 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 	 * 
 	 * - ensure any database updates are rolled back
 	 */
+
+    /**
+     * Array of duplicate posts.
+     * @var
+     */
+	private $posts;
+
 	function setUp(): void {
 		parent::setUp();
 		$this->set_duplicate_title();
 		$this->clear_all_duplicates();
+		$this->posts = [];
 	}
 
 	function tearDown(): void {
@@ -59,7 +67,7 @@ class Tests_issue_13459 extends BW_UnitTestCase {
     }
 
     /**
-     * Since we're forcing commits in order to perform wp_remote_gets()
+     * Since we're forcing commits in order to perform wp_remote_get() calls
      * we need to ensure we've cleaned up any previous duplicates.
      *
      */
@@ -95,7 +103,7 @@ class Tests_issue_13459 extends BW_UnitTestCase {
                 $error = wp_delete_post($post->ID, true );
                 //print_r( $error );
             } else {
-                echo "Not deleting";
+                echo "Error: Not deleting. We shouldn't have fetched this.";
                 print_r( $post );
             }
 
@@ -103,15 +111,22 @@ class Tests_issue_13459 extends BW_UnitTestCase {
     }
 
 	/**
-	 * This is supposed to set the permalink structure.
-	 * How do we test that this has worked?
-	 * What does the `set_permalink_structure()` method do? What about `flush_rules()`?
-	 */
+     * Sets the permalink structure.
+     *
+     */
 	function set_permalink_structure( $structure='/%postname%/') {
 		global $wp_rewrite;
 		$wp_rewrite->set_permalink_structure( $structure );
 	}
 
+    /**
+     * Flushes the rewrite rules.
+     *
+     * Before calling wp_remote_get() we need to
+     * call flush_rules() to write the updated rewrite rules
+     * and commit the database updates.
+     * The updates are reversed during tear down processing.
+     */
 	static function flush_rules() {
 		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
@@ -120,12 +135,13 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 
 	/**
 	 * Generates post content to uniquely identify the post.
+     *
 	 * Includes the permalink structure.
+     * The post ID placeholder ( %ID% ) is updated by update_post_content().
 	 *
 	 * @param $title
 	 * @param $type
 	 * @param $status
-	 *
 	 * @return string
 	 */
 	function generate_post_content( $title, $type, $status ) {
@@ -185,11 +201,20 @@ class Tests_issue_13459 extends BW_UnitTestCase {
         return $result;
 	}
 
+	function fetch_post_by_id( $post ) {
+	    $permalink = $post->guid;
+	    //print_r( $post );
+	    //echo $permalink;
+        $result = $this->fetch_post( $permalink );
+	    return $result;
+    }
+
 	/**
      * Attempt to fetch a post by link.
      *
      * The link doesn't have to be the permalink of the post.
-     * It can be in different format such as
+     * It can be in different format such as:
+     *
      * - ?p=nnnn - ie plain
      * - year/month/postname
      * - postname&post_type=type
@@ -256,6 +281,22 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 		return $structures;
     }
 
+    /**
+     * Generate duplicate posts of the selected post type.
+     *
+     * @param $types array of required post types
+     */
+    function generate_duplicates( $types ) {
+        $this->set_permalink_structure( $this->structure );
+        self::flush_rules();
+        $this->clear_all_duplicates();
+
+        $this->posts[0] = $this->create_post( $types[0], 'publish');
+        $this->posts[1] = $this->create_post( $types[1], 'publish');
+
+        parent::commit_transaction();
+    }
+
 	/**
      * Tests accessing posts with non-duplicated slugs.
      *
@@ -264,23 +305,13 @@ class Tests_issue_13459 extends BW_UnitTestCase {
      */
 	function test_duplicate_post_post() {
 		//$structure = '/%postname%/';
+        $this->generate_duplicates( ['post', 'post'] );
 
-		$this->set_permalink_structure( $this->structure );
-		self::flush_rules();
-		$this->clear_all_duplicates();
+        $this->assertNotEquals( $this->posts[0]->ID, $this->posts[1]->ID );
+        $this->assertNotEquals( $this->posts[0]->post_name, $this->posts[1]->post_name );
 
-		$post1 = $this->create_post( 'post', 'publish');
-		$post2 = $this->create_post( 'post', 'publish');
-
-		$this->assertNotEquals( $post1->ID, $post2->ID );
-		$this->assertNotEquals( $post1->post_name, $post2->post_name );
-		//$this->assertFalse( true );
-		//$this->flush_rules();
-        parent::commit_transaction();
-        $fetched1 = $this->fetch_post_by_permalink( $post1 );
-        $this->check_fetched( $fetched1, $post1 );
-        $fetched2 = $this->fetch_post_by_permalink( $post2 );
-        $this->check_fetched( $fetched2, $post2 );
+        $this->access_duplicates_by_permalink();
+        $this->access_duplicates_by_id();
     }
 
     /**
@@ -295,24 +326,36 @@ class Tests_issue_13459 extends BW_UnitTestCase {
      * And doesn't support using a `post_type=` attribute to enable the differentiation.
      */
     function test_duplicate_page_post() {
-        $this->set_permalink_structure( $this->structure);
-        self::flush_rules();
-        $this->clear_all_duplicates();
+        $this->generate_duplicates( ['page', 'post'] );
 
-        $page = $this->create_post( 'page', 'publish');
-        $post = $this->create_post( 'post', 'publish');
 
-        $this->assertNotEquals( $page->ID, $post->ID );
+        $this->assertNotEquals( $this->posts[0]->ID, $this->posts[1]->ID );
         // This will fail if and when the post's permalink is different from the page's
-        $this->assertEquals( $page->post_name, $post->post_name );
-        parent::commit_transaction();
+        $this->assertEquals( $this->posts[0]->post_name, $this->posts[1]->post_name );
 
-        $fetched1 = $this->fetch_post_by_permalink( $page );
-        $this->check_fetched( $fetched1, $page );
-        $fetched2 = $this->fetch_post_by_permalink( $post );
         // This will fail while the page is being fetched instead of the post.
         // due to the post's permalink being the same as the page's.
-        $this->check_fetched( $fetched2, $post );
+        $this->access_duplicates_by_permalink();
+        /**
+         * Access the duplicated posts by their post IDs
+         * Do we get here when an assertion has already failed?
+         */
+        //$this->access_duplicates_by_id();
+    }
+
+    function test_duplicate_page_post_access_by_ID() {
+        $this->generate_duplicates( ['page', 'post'] );
+
+
+        $this->assertNotEquals( $this->posts[0]->ID, $this->posts[1]->ID );
+        // This will fail if and when the post's permalink is different from the page's
+        $this->assertEquals( $this->posts[0]->post_name, $this->posts[1]->post_name );
+
+        /**
+         * Access the duplicated posts by their post IDs
+         * Do we get here when an assertion has already failed?
+         */
+        $this->access_duplicates_by_id();
     }
 
 	/**
@@ -323,7 +366,6 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 		foreach ( $structures as $structure ) {
 			$this->structure = $structure;
 			$this->test_duplicate_post_post();
-			//$this->test_duplicate_page_post();
 		}
 	}
 
@@ -338,5 +380,31 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 			$this->test_duplicate_page_post();
 		}
 	}
+
+    /**
+     * Tests duplicate page/post combinations for a range of permalink structures.
+     */
+    function test_permalink_structures_page_post_access_by_ID() {
+        $structures = $this->permalink_structures();
+        foreach ( $structures as $structure ) {
+            $this->structure = $structure;
+            //$this->test_duplicate_post_post();
+            $this->test_duplicate_page_post_access_by_ID();
+        }
+    }
+
+	function access_duplicates_by_permalink() {
+        $fetched1 = $this->fetch_post_by_permalink( $this->posts[0] );
+        $this->check_fetched( $fetched1, $this->posts[0] );
+        $fetched2 = $this->fetch_post_by_permalink( $this->posts[1] );
+        $this->check_fetched( $fetched2, $this->posts[1] );
+    }
+
+	function access_duplicates_by_id() {
+        $fetched3 = $this->fetch_post_by_id( $this->posts[0] );
+        $this->check_fetched( $fetched3, $this->posts[0] );
+        $fetched4 = $this->fetch_post_by_id( $this->posts[1] );
+        $this->check_fetched( $fetched4, $this->posts[1] );
+    }
 
 }
