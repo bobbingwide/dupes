@@ -121,7 +121,7 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 	/**
 	 * Generates post content to uniquely identify the post.
 	 * Includes the permalink structure.
-	 * 
+	 *
 	 * @param $title
 	 * @param $type
 	 * @param $status
@@ -181,23 +181,43 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 	function fetch_post_by_permalink( $post ) {
 		$permalink = get_permalink( $post );
 		//echo "Fetching: " . $permalink;
-		$args = [ 'sslverify' => false ];
-		$result  = wp_remote_get( $permalink, $args);
-		//echo "Result: ";
+        $result = $this->fetch_post( $permalink );
+        return $result;
+	}
+
+	/**
+     * Attempt to fetch a post by link.
+     *
+     * The link doesn't have to be the permalink of the post.
+     * It can be in different format such as
+     * - ?p=nnnn - ie plain
+     * - year/month/postname
+     * - postname&post_type=type
+
+     */
+	function fetch_post( $permalink ) {
+        //echo "Fetching: " . $permalink;
+        $args = [ 'sslverify' => false ];
+        $result  = wp_remote_get( $permalink, $args);
+        //echo "Result: ";
         $this->assertNotWPError( $result );
         if ( ! is_wp_error( $result ) ) {
             $response_code = wp_remote_retrieve_response_code( $result );
             //echo "Response code: " . $response_code;
             //print_r( $response_code );
-            $this->assertEquals( 200, $response_code );
+            $message = "Permalink: " . $permalink;
+            $message .= " Structure: " . $this->structure;
+            $this->assertEquals( 200, $response_code, $message );
             if ( 200 === $response_code ) {
                 $response = wp_remote_retrieve_body( $result );
                 //print_r( $response );
                 $result = $response;
+            } else {
+                print_r( $result );
             }
         }
-		return $result;
-	}
+        return $result;
+    }
 
     /**
      * Checks that the post's content is in the fetched result.
@@ -214,7 +234,7 @@ class Tests_issue_13459 extends BW_UnitTestCase {
         $endpara = strpos( $fetched, "</p>");
         $fetched = substr( $fetched, 0, $endpara + 4 );
         // Checks for needle in haystack. Reverse of strpos().
-	    $this->assertEquals( $post->post_content, $fetched );
+	    $this->assertEquals( $post->post_content, $fetched, "Structure: " . $this->structure );
     }
 
 	/**
@@ -246,6 +266,7 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 		//$structure = '/%postname%/';
 
 		$this->set_permalink_structure( $this->structure );
+		self::flush_rules();
 		$this->clear_all_duplicates();
 
 		$post1 = $this->create_post( 'post', 'publish');
@@ -275,6 +296,7 @@ class Tests_issue_13459 extends BW_UnitTestCase {
      */
     function test_duplicate_page_post() {
         $this->set_permalink_structure( $this->structure);
+        self::flush_rules();
         $this->clear_all_duplicates();
 
         $page = $this->create_post( 'page', 'publish');
