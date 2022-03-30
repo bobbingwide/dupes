@@ -3,7 +3,13 @@
  * @copyright (C) Copyright Bobbing Wide 2022
  */
 
-class Tests_issue_13459 extends BW_UnitTestCase {
+if ( class_exists( 'BW_UnitTestCase')) {
+	class_alias( 'BW_UnitTestCase', 'BWORWP_UnitTestCase');
+} else {
+	class_alias( 'WP_UnitTestCase', 'BWORWP_UnitTestCase');
+}
+
+class Tests_issue_13459 extends BWORWP_UnitTestCase {
 
     static private $saved_permalink_structure = null;
 
@@ -13,9 +19,9 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 	 * @var string
 	 */
     private $structure = '';
-	/** 
+	/**
 	 * set up logic
-	 * 
+	 *
 	 * - ensure any database updates are rolled back
 	 */
 
@@ -196,13 +202,18 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 	 */
 	function fetch_post_by_permalink( $post ) {
 		$permalink = get_permalink( $post );
-		//echo "Fetching: " . $permalink;
+		//echo "Fetching by permalink:" ;
         $result = $this->fetch_post( $permalink );
         return $result;
 	}
 
+    /**
+     * @param $post
+     * @return array|string|WP_Error
+     */
 	function fetch_post_by_id( $post ) {
 	    $permalink = $post->guid;
+	    //echo "Fetching by ID:";
 	    //print_r( $post );
 	    //echo $permalink;
         $result = $this->fetch_post( $permalink );
@@ -222,9 +233,10 @@ class Tests_issue_13459 extends BW_UnitTestCase {
      */
 	function fetch_post( $permalink ) {
         //echo "Fetching: " . $permalink;
+        //echo PHP_EOL;
         $args = [ 'sslverify' => false ];
         $result  = wp_remote_get( $permalink, $args);
-        //echo "Result: ";
+        //print_r( $result );
         $this->assertNotWPError( $result );
         if ( ! is_wp_error( $result ) ) {
             $response_code = wp_remote_retrieve_response_code( $result );
@@ -295,6 +307,47 @@ class Tests_issue_13459 extends BW_UnitTestCase {
         $this->posts[1] = $this->create_post( $types[1], 'publish');
 
         parent::commit_transaction();
+        $this->check_created_posts( $types );
+    }
+
+    /**
+     * Gets all posts.
+     */
+    function get_all_posts() {
+        $posts = get_post( 721 );
+        return $posts;
+    }
+
+    /**
+     * Tests the round trip.
+	 *
+	 * This test uses the current value for the permalink structure.
+     */
+    function test_round_trip() {
+    	$this->structure = self::$saved_permalink_structure;
+        $post = $this->create_post( "post", "publish");
+        $this->posts[0] = $post;
+		parent::commit_transaction();
+        //print_r( $post );
+        $fetched1 = $this->fetch_post_by_permalink( $this->posts[0] );
+        //$this->posts[0]->post_content = $this->findable_paragraph() . 'duplicate-title-trac</p>';
+        $this->check_fetched( $fetched1, $this->posts[0] );
+    }
+
+    /**
+     * Tests the round trip for Day and Name.
+     */
+    function test_round_trip_day_and_name() {
+        $this->structure = '/%year%/%monthnum%/%day%/%postname%/';
+        $this->set_permalink_structure( $this->structure );
+        self::flush_rules();
+		$post = $this->create_post( "post", "publish");
+		$this->posts[0] = $post;
+        parent::commit_transaction();
+        $fetched1 = $this->fetch_post_by_permalink( $this->posts[0] );
+        //echo $fetched1;
+        //$this->posts[0]->post_content = $this->findable_paragraph() . 'duplicate-title-trac</p>';
+        $this->check_fetched( $fetched1, $this->posts[0] );
     }
 
 	/**
@@ -311,8 +364,25 @@ class Tests_issue_13459 extends BW_UnitTestCase {
         $this->assertNotEquals( $this->posts[0]->post_name, $this->posts[1]->post_name );
 
         $this->access_duplicates_by_permalink();
-        $this->access_duplicates_by_id();
+        //$this->access_duplicates_by_id();
     }
+
+	/**
+	 * Tests accessing posts with non-duplicated slugs.
+	 *
+	 * Two posts with the same title should have different slugs
+	 * and be individually accessible by their permalinks.
+	 */
+	function test_duplicate_post_post_access_by_ID() {
+		//$structure = '/%postname%/';
+		$this->generate_duplicates( ['post', 'post'] );
+
+		$this->assertNotEquals( $this->posts[0]->ID, $this->posts[1]->ID );
+		$this->assertNotEquals( $this->posts[0]->post_name, $this->posts[1]->post_name );
+
+		//$this->access_duplicates_by_permalink();
+		$this->access_duplicates_by_id();
+	}
 
     /**
      * Tests accessing a duplicate slug: page and post.
@@ -370,6 +440,18 @@ class Tests_issue_13459 extends BW_UnitTestCase {
 	}
 
 	/**
+	 * Tests duplicate posts combinations for a range of permalink structures
+	 * accessing posts by ID.
+	 */
+	function test_permalink_structures_access_by_ID() {
+		$structures = $this->permalink_structures();
+		foreach ( $structures as $structure ) {
+			$this->structure = $structure;
+			$this->test_duplicate_post_post_access_by_ID();
+		}
+	}
+
+	/**
 	 * Tests duplicate page/post combinations for a range of permalink structures.
 	 */
 	function test_permalink_structures_page_post() {
@@ -406,5 +488,33 @@ class Tests_issue_13459 extends BW_UnitTestCase {
         $fetched4 = $this->fetch_post_by_id( $this->posts[1] );
         $this->check_fetched( $fetched4, $this->posts[1] );
     }
+
+	/**
+	 * Here we might add some logic that records the results so that we can see
+	 * what the database contained while the tests were running.
+	 *
+	 * Change false to true if you want to see the posts at runtime.
+	 * When you do this the tests will be marked as Risky.
+	 *
+	 * @param $types
+	 */
+    function check_created_posts( $types ) {
+    	foreach ( $types as $index => $type ) {
+    		$post = $this->posts[ $index ];
+    		$fields = [];
+    		$fields[] = $post->ID;
+    		$fields[] = $post->post_type;
+    		$fields[] = $post->post_status;
+    		$fields[] = $post->post_content;
+    		$fields[] = $post->post_name;
+    		$fields[] = $post->guid;
+    		$line = implode( ',', $fields);
+    		if ( false ) {
+				echo PHP_EOL;
+				echo $line;
+				echo PHP_EOL;
+			}
+		}
+	}
 
 }
