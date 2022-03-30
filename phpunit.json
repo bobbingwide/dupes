@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="" tests="11" assertions="394" errors="0" warnings="1" failures="2" skipped="0" time="47.703724">
+    <testsuite name="dupes" tests="11" assertions="394" errors="0" warnings="1" failures="2" skipped="0" time="47.703724">
+      <testsuite name="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" tests="10" assertions="394" errors="0" warnings="0" failures="2" skipped="0" time="47.703595">
+        <testcase name="test_round_trip" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="326" assertions="7" time="1.337930"/>
+        <testcase name="test_round_trip_day_and_name" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="340" assertions="7" time="1.193305"/>
+        <testcase name="test_duplicate_post_post" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="359" assertions="15" time="1.630179"/>
+        <testcase name="test_duplicate_post_post_access_by_ID" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="376" assertions="15" time="1.680350"/>
+        <testcase name="test_duplicate_page_post" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="398" assertions="15" time="1.724275"/>
+        <testcase name="test_duplicate_page_post_access_by_ID" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="416" assertions="15" time="1.630959"/>
+        <testcase name="test_permalink_structures" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="434" assertions="80" time="6.855399"/>
+        <testcase name="test_permalink_structures_access_by_ID" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="446" assertions="80" time="8.092778"/>
+        <testcase name="test_permalink_structures_page_post" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="457" assertions="80" time="13.715248">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests_issue_13459::test_permalink_structures_page_post
+Structure: /%postname%/
+Failed asserting that two strings are equal.
+--- Expected
++++ Actual
+@@ @@
+-'&lt;p class="duplicate-title-trac-13459"&gt;duplicate title TRAC 13459:post:publish:1920:/%postname%/&lt;/p&gt;'
++'&lt;p class="duplicate-title-trac-13459"&gt;duplicate title TRAC 13459:page:publish:1918:/%postname%/&lt;/p&gt;'
+
+C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php:274
+C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php:482
+C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php:408
+C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php:462</failure>
+        </testcase>
+        <testcase name="test_permalink_structures_page_post_access_by_ID" class="Tests_issue_13459" classname="Tests_issue_13459" file="C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php" line="469" assertions="80" time="9.843174">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests_issue_13459::test_permalink_structures_page_post_access_by_ID
+Structure: /%postname%/
+Failed asserting that two strings are equal.
+--- Expected
++++ Actual
+@@ @@
+-'&lt;p class="duplicate-title-trac-13459"&gt;duplicate title TRAC 13459:post:publish:1944:/%postname%/&lt;/p&gt;'
++'&lt;p class="duplicate-title-trac-13459"&gt;duplicate title TRAC 13459:page:publish:1942:/%postname%/&lt;/p&gt;'
+
+C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php:274
+C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php:489
+C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php:428
+C:\apache\htdocs\wordpress\wp-content\plugins\dupes\tests\test-issue-13459.php:474</failure>
+        </testcase>
+      </testsuite>
+      <testsuite name="BW_UnitTestCase" file="C:\apache\htdocs\wordpress\wp-content\plugins\oik-batch\tests\class-bw-unittestcase.php" tests="1" assertions="0" errors="0" warnings="1" failures="0" skipped="0" time="0.000129">
+        <testcase name="Warning" assertions="0" time="0.000129">
+          <warning type="PHPUnit\Framework\Warning">Warning
+No tests found in class "BW_UnitTestCase".</warning>
+        </testcase>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

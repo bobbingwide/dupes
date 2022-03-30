@@ -17,38 +17,39 @@ This can lead to the user being shown a link to some content which, when clicked
 
 WordPress TRAC issue #13459 covers the initial problem, raised for a permalink structure of /%postname%/.
 
-Deeper investigation has indicated there are a number of other problems that could be fixed.
+Deeper investigation has indicated there are a number of other problems that could/should be fixed.
 
-v0.1.0 of this plugin doesn't yet do anything to fix the problem.
-It only contains PHPUnit tests to demonstrate where the problem occurs.
+v0.1.0 of this plugin doesn't yet do anything to fix the problems.
+It only contains PHPUnit tests to demonstrate where problems occur.
 
 The tests currently produce two failures.
 
-1. The original problem, where a page is returned instead of the post.
+1. The original problem, where the duplicate page is returned instead of the post.
 2. The inability to retrieve the post by its post ID, when there's a duplicate page.
 
 The tests don't give a clear indication of the actual test coverage and results.
 This would be nice to have.
-In the meantime, you'll have to read the tests and the phpunit.json.
+In the meantime, you'll have to read the tests and the PHPUnit test results in `phpunit.json`.
 
 == Installation ==
 
 The tests have been developed to run either In Situ, which means they can be run in an existing installation,
 or as block box testing using WordPress develop.
 
-In both cases the tests use `wp_remote_get()` to access the duplicated posts in the same way that an end user would.
-The `website` therefore needs to be accessible.
+In both cases the tests use `wp_remote_get()` to attempt to access the duplicated posts in the same way that an end user would.
+The test website therefore needs to be accessible with valid values for WordPress Address (URL) and Site Address (URL).
 
-In my development environment the installations are within a subdirectory within `/apache/htdocs`.
-Rather than using `localhost` I use a domain name of `s.b`.
+In my development environment the installations are within subdirectories of `/apache/htdocs`.
+Rather than using `localhost` I use a domain name of `s.b`, and connect using the https scheme.
 
 Installation type | WordPress core in | Home URL / Site URL
 ----------------- | ----------------- | -------------------
+In Situ           | cwiccer           | https://s.b/cwiccer/
 WordPress develop | wordpress-develop/src | https://s.b/wordpress-develop/src/
 In Situ           | wordpress-develop/src | https://s.b/wordpress-develop/src/
-In Situ           | cwiccer           | https://s.b/cwiccer/
 
-For In Situ testing
+
+For In Situ testing:
 
 1. Upload the contents of the dupes plugin to the `/wp-content/plugins/dupes' directory
 1. Install oik-batch and wordpress-develop-tests plugins.
@@ -93,6 +94,11 @@ First version of In Situ PHP Unit tests for WordPress TRAC issue #13459
 
 == Changelog ==
 = 0.1.0 =
+* Added: Add basic round trip black box tests. #1 #2
+* Changed: Enable both In Situ and WordPress develop testing #1 #2
+* Changed: Update readme.txt to document PHPUnit test options #1 #2
+* Changed: Refactor to add tests accessing duplicate posts by ID #1
+* Changed: Extract fetch_post() into method. Add calls to flush_rules(). Start improving failure messages #1
 
 = 0.0.0 = 
 * Added: Initial PHPUnit tests for WordPress TRAC 13459 #1
